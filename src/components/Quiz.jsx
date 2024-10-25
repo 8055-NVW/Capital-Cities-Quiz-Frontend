@@ -1,8 +1,13 @@
+//IMPORTS 
 import { useState, useEffect } from 'react'
+import GameOver from './subcomponents/GameOver'
+import Spinner from './subcomponents/Spinner'
 
-const API_URL = "http://localhost:5000"
+const API_URL = process.env.REACT_APP_BACKEND_URL
+
 
 export default function Quiz() {
+    //VARIABLES
     const [quizData, setQuizData] = useState(null)
     const [selectedAnswer, setSelectedAnswer] = useState(null)
     const [showResult, setShowResult] = useState(false)
@@ -10,27 +15,22 @@ export default function Quiz() {
     const [longestStreak, setLongestStreak] = useState(0)
     const [isPlaying, setIsPlaying] = useState(true)
 
-
+    //FUNCTIONS
     const fetchQuestion = async () => {
         try {
-            const res = await fetch(`${API_URL}/quiz`)
-            if (!res.ok) 
+            const response = await fetch(`${API_URL}/quiz`)
+            if (!response.ok) 
                 throw new Error('Failed to fetch quiz data')            
-            const data = await res.json()
-            console.log(data)
+            const data = await response.json()
             setQuizData(data)
-
+            setSelectedAnswer(null)
+            setShowResult(false)
         } catch (err) {
             console.error("Error fetching quiz data:", err)
         }
     }
 
-    useEffect(() => {
-        fetchQuestion()
-    }, [])
-
     const handleAnswer = (answer) => {
-        // Function to handle user's answer selection
         setSelectedAnswer(answer)
         setShowResult(true)
         // logic to show a sreak of correct answers
@@ -45,7 +45,6 @@ export default function Quiz() {
         }
     }
 
-
     const handleQuit = () => setIsPlaying(false)
 
     const handleStartNewGame = () => {
@@ -53,10 +52,33 @@ export default function Quiz() {
         setIsPlaying(true)
     }
 
+    //useEffect
+    useEffect(() => {
+        fetchQuestion()
+    }, [])
+
+
+    //RENDER
+    if (!isPlaying) {
+        return (
+            <GameOver
+                currentStreak={currentStreak}
+                longestStreak={longestStreak}
+                handleStartNewGame={handleStartNewGame}
+            />
+        )
+    }
+
+    if (!quizData) {
+        return (
+            <Spinner/>
+        )      
+    }
+
     return (
         <div className="flex justify-center items-center min-h-screen bg-gray-600 py-12 px-4 sm:px-6 lg:px-8">
             <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
-                <h1 className="text-2xl font-bold text-center mb-8">
+                <h1 className=" text-3xl font-bold text-center mb-8">
                     Capital Cities Quiz
                 </h1>
                 <div className="flex justify-between mb-4">
@@ -67,10 +89,10 @@ export default function Quiz() {
                         Longest Streak: <span className="font-bold text-green-600">{longestStreak}</span>
                     </div>
                 </div>
-                <div className="mb-8">
-                    <h2 className="text-xl text-center break-words mb-4">
+                <div className="mb-8">                   
+                    <h2 className=" text-xl text-center break-words mb-4">
                         What is the capital of {quizData?.country}?
-                    </h2>
+                    </h2>                   
                     <div className="space-y-3">
                         {quizData?.answers.map((option, index) => (
                             <button
@@ -91,8 +113,9 @@ export default function Quiz() {
                         ))}
                     </div>
                 </div>
+                <div className="h-10 my-3">
                 {showResult && (
-                    <div className={`text-center mb-6 ${selectedAnswer === quizData.correctAnswer
+                    <div className={`text-center ${selectedAnswer === quizData.correctAnswer
                         ? 'text-green-600'
                         : 'text-red-600'
                         }`}>
@@ -101,8 +124,8 @@ export default function Quiz() {
                             : `Incorrect. The correct answer is ${quizData.correctAnswer}`}
                     </div>
                 )}
+                </div>
                 <div className='flex flex-row justify-center items-center'>
-
                     <button
                         onClick={fetchQuestion}
                         className="w-full mx-2 bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition"
